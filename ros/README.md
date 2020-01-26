@@ -1,0 +1,27 @@
+# Overview
+
+These are the ROS packages that we'll be using for FYDP
+
+## bee_test
+
+Test package for doing random stuff. Not part of FYDP stuff.
+
+
+# Setup
+
+Assuming you have a catkin workspace already, let's setup a symlink to add your packages.
+
+Let's take the `bee_test` package for example.
+
+```
+ln -s ~/catkin_ws/src Bee-Boys/ros/bee_test
+```
+
+This will make a symbolic link to your package and make it easier to update packages via git and keeping the packages within your workspace.
+
+To check that everything is working, go to your workspace directory and build:
+
+```
+cd ~/catkin_ws
+catkin build
+```
