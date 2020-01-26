@@ -4,8 +4,7 @@ These are the ROS packages that we'll be using for FYDP
 
 ## bee_test
 
-Test package for doing random stuff. Not part of FYDP stuff.
-
+Test package to run the simulator. Check [here](../README.md) for more information on how to use `bee_test`.
 
 # Setup
 

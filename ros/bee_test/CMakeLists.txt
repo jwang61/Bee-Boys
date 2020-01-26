@@ -8,6 +8,7 @@ project(bee_test)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
   geometry_msgs
   mavros_msgs
 )
@@ -149,6 +150,18 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
+add_executable(off_node
+  src/off_node.cpp
+)
+
+add_dependencies(off_node
+  geometry_msgs
+  mavros_msgs
+)
+
+target_link_libraries(off_node
+  ${catkin_LIBRARIES}
+)
 #############
 ## Install ##
 #############
