@@ -51,10 +51,12 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>geomtry_msgs</build_depend>
   <build_depend>mavros_msgs</build_depend>
+  <build_depend>tf</build_depend>
   <build_export_depend>geomtry_msgs</build_export_depend>
   <build_export_depend>mavros_msgs</build_export_depend>
   <exec_depend>geomtry_msgs</exec_depend>
   <exec_depend>mavros_msgs</exec_depend>
+  <exec_depend>tf</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

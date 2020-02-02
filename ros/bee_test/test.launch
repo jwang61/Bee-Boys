@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="map_base_link" pkg="bee_test" type="map_base_link" output="screen"/>
+    <node name="base_link_arm" pkg="bee_test" type="base_link_arm" output="screen"/>
+</launch>

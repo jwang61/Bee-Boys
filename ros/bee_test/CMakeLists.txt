@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   geometry_msgs
   mavros_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -160,6 +161,34 @@ add_dependencies(off_node
 )
 
 target_link_libraries(off_node
+  ${catkin_LIBRARIES}
+)
+
+add_executable(map_base_link
+  src/map_base_link.cpp
+)
+
+add_dependencies(map_base_link
+  geometry_msgs
+  mavros_msgs
+  tf
+)
+
+target_link_libraries(map_base_link
+  ${catkin_LIBRARIES}
+)
+
+add_executable(base_link_arm
+  src/base_link_arm.cpp
+)
+
+add_dependencies(base_link_arm
+  geometry_msgs
+  mavros_msgs
+  tf
+)
+
+target_link_libraries(base_link_arm
   ${catkin_LIBRARIES}
 )
 #############
