@@ -164,6 +164,19 @@ target_link_libraries(off_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(control_node
+  src/control_node.cpp
+)
+
+add_dependencies(control_node
+  geometry_msgs
+  mavros_msgs
+)
+
+target_link_libraries(control_node
+  ${catkin_LIBRARIES}
+)
+
 add_executable(map_base_link
   src/map_base_link.cpp
 )

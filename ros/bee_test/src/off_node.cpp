@@ -15,6 +15,11 @@ void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
 }
 
+geometry_msgs::PoseStamped pose;
+void pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
+    pose.pose = msg->pose;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "offb_node");
@@ -22,6 +27,8 @@ int main(int argc, char **argv)
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
             ("mavros/state", 10, state_cb);
+    ros::Subscriber local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>
+            ("mavros/global_position/pose", 10, pose_cb);
     ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
             ("mavros/setpoint_position/local", 10);
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>
@@ -38,14 +45,11 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
-    pose.pose.position.z = 2;
+    geometry_msgs::PoseStamped set_pose;
 
     //send a few setpoints before starting
     for(int i = 100; ros::ok() && i > 0; --i){
-        local_pos_pub.publish(pose);
+        local_pos_pub.publish(set_pose);
         ros::spinOnce();
         rate.sleep();
     }
@@ -66,6 +70,7 @@ int main(int argc, char **argv)
                 ROS_INFO("Offboard enabled");
             }
             last_request = ros::Time::now();
+            ROS_INFO_STREAM("Current State: " << current_state.mode);
         } else {
             if( !current_state.armed &&
                 (ros::Time::now() - last_request > ros::Duration(5.0))){
@@ -77,7 +82,7 @@ int main(int argc, char **argv)
             }
         }
 
-        local_pos_pub.publish(pose);
+        local_pos_pub.publish(set_pose);
 
         ros::spinOnce();
         rate.sleep();
