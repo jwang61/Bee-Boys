@@ -7,10 +7,8 @@ project(pose_estimate)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
-  nav_msgs
   roscpp
-  tf
+  geometry_msgs
 )
 
 
@@ -85,9 +83,9 @@ find_package( OpenCV REQUIRED )
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  #  INCLUDE_DIRS include
-  #  LIBRARIES pose_estimate
-  CATKIN_DEPENDS geometry_msgs roscpp tf
+  INCLUDE_DIRS include
+  LIBRARIES pose_estimate
+  CATKIN_DEPENDS roscpp geometry_msgs
   DEPENDS OpenCV
 )
 
@@ -104,9 +102,9 @@ include_directories(
 )
 
 ## Declare a cpp library
-## add_library(ekf
-##   src/lib/kalman_filter.cpp
-## )
+ add_library(detector
+   src/lib/detector.cpp
+ )
 
 ## Declare a cpp executable
  add_executable(pose_estimate_node src/pose_estimate_node.cpp)
@@ -117,6 +115,7 @@ include_directories(
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(pose_estimate_node
+   detector
    ${catkin_LIBRARIES}
    ${OpenCV_LIBS}
  )
