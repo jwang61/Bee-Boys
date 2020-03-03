@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(bee_test)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -49,10 +49,10 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
+#   DIRECTORY msg
 #   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+#   PollinationArm.msg
+#  )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -69,9 +69,9 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
+#  generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs#   mavros_msgs
+#  geometry_msgs#   mavros_msgs
 # )
 
 ################################################
@@ -202,6 +202,51 @@ add_dependencies(base_link_arm
 )
 
 target_link_libraries(base_link_arm
+  ${catkin_LIBRARIES}
+)
+
+add_executable(teleop
+  src/teleop.cpp
+)
+
+add_dependencies(teleop
+  geometry_msgs
+  mavros_msgs
+  tf
+  std_msgs
+)
+
+target_link_libraries(teleop
+  ${catkin_LIBRARIES}
+)
+
+add_executable(keyboard_publisher
+  src/keyboard_publisher.cpp
+)
+
+add_dependencies(keyboard_publisher
+  geometry_msgs
+  mavros_msgs
+  tf
+  std_msgs
+)
+
+target_link_libraries(keyboard_publisher
+  ${catkin_LIBRARIES}
+)
+
+add_executable(actuate_arm
+  src/actuate_arm.cpp
+)
+
+add_dependencies(actuate_arm
+  geometry_msgs
+  mavros_msgs
+  tf
+  std_msgs
+)
+
+target_link_libraries(actuate_arm
   ${catkin_LIBRARIES}
 )
 #############
