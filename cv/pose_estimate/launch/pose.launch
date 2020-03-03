@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="pose_estimate" pkg="pose_estimate" type="pose_estimate_node" output="screen">
+
+    </node>
+</launch>

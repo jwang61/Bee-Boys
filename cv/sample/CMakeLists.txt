@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.8)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+project( cv )
+find_package( OpenCV REQUIRED )
+add_executable( Sample sample.cpp )
+target_link_libraries( Sample ${OpenCV_LIBS} )
