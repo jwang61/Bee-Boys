@@ -5,19 +5,19 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/objdetect.hpp"
 #include "opencv2/videoio.hpp"
+#include <std_msgs/Float32.h>
 
 #include <pose_estimate/detector.h>
 
 using namespace std;
 using namespace cv;
 
-#define USE_CAMERA
 #define PUBLISH_MSG
 
-#ifdef USE_CAMERA
 #define CAMERA_ID 0 // Camera device number
-#endif
 #define FRAME_RATE 30
+
+float speed(0.25);
 
 int main( int argc, char** argv )
 {
@@ -30,24 +30,12 @@ int main( int argc, char** argv )
 
 #ifdef PUBLISH_MSG
     ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>("/mavros/setpoint_velocity/cmd_vel_unstamped", 1);
+    ros::Publisher servo_angle_pub = nh.advertise<std_msgs::Float32>("/servo_angle_publisher", 10);
     geometry_msgs::Twist vel;
+    std_msgs::Float32 servo_angle;
 #endif
 
-#ifdef USE_CAMERA
-    VideoCapture cap;
-    Mat frame;
-    cap.open(CAMERA_ID);
-
-    if (! cap.isOpened())
-    {
-        cout << "--(!)Error opening video capture\n";
-        return -1;
-    }
-#else
-    Mat frame = imread("/home/justin/github/Bee-Boys/cv/data/28_5.jpg");
-#endif
-
-    Detector detector(mode, FRAME_RATE);
+    Detector detector(CAMERA_ID, FRAME_RATE, mode);
 
     if (!detector.load_cascade(param))
         cout << "Failed to load cascade" << endl;
@@ -61,17 +49,21 @@ int main( int argc, char** argv )
     {
         ros::spinOnce();
 
-#ifdef USE_CAMERA
-        cap >> frame;
-#endif
-
-        result = detector.load_frame(frame);
+        result = detector.load_frame();
         if (!result)
             break;
 
 #ifdef PUBLISH_MSG
         vel.linear = detector.process();
+	    vel.linear.x *= speed;
+	    vel.linear.y *= speed;
+	    vel.linear.z *= speed;
         vel_pub.publish(vel);
+        if (detector.position_locked)
+            servo_angle.data = 45;
+        else
+            servo_angle.data = 0.0;
+        servo_angle_pub.publish(servo_angle);
 #else
         detector.process();
 #endif
@@ -85,10 +77,6 @@ int main( int argc, char** argv )
         //prev_time = nsecs;
 
     }
-
-#ifdef USE_CAMERA
-    cap.release();
-#endif
 
     return 0;
 }

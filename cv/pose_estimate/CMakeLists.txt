@@ -9,12 +9,13 @@ project(pose_estimate)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   geometry_msgs
+  std_msgs
 )
 
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package( OpenCV REQUIRED )
+find_package( OpenCV 3.4.9 REQUIRED )
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -85,7 +86,7 @@ find_package( OpenCV REQUIRED )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES pose_estimate
-  CATKIN_DEPENDS roscpp geometry_msgs
+  CATKIN_DEPENDS roscpp geometry_msgs std_msgs
   DEPENDS OpenCV
 )
 

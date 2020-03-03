@@ -1,4 +1,5 @@
 #include "opencv2/objdetect.hpp"
+#include "opencv2/videoio.hpp"
 #include <geometry_msgs/Vector3.h>
 
 namespace VideoModes
@@ -16,15 +17,16 @@ typedef VideoModes::VideoMode VideoMode;
 
 class Detector {
 public:
+    bool position_locked;
     // Constructor
-    Detector(int video_mode = 2, int frame_rate = 30);
+    Detector(int camera_id, int fps, int video_mode = 2);
 
     // Destructor
     virtual ~Detector();
 
     bool load_cascade(cv::String);
 
-    bool load_frame(cv::Mat);
+    bool load_frame();
 
     geometry_msgs::Vector3 process();
 
@@ -34,13 +36,18 @@ private:
     cv::Mat raw_frame;
     cv::Mat detect_frame;
 
+    cv::VideoCapture cap;
+
+    cv::VideoWriter raw_video;
+    cv::VideoWriter detect_video;
+
     bool loaded;
     bool display_raw;
     bool display_detect;
     bool save_raw;
     bool save_detect;
 
-    void display_detection(cv::Mat, cv::Rect, bool);
+    void display_detection(cv::Rect, bool);
 
     int frame_rate;
 
