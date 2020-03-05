@@ -58,10 +58,10 @@ int main( int argc, char** argv )
 
 #ifdef PUBLISH_MSG
 #ifdef ARDRONE
-    ros::Publisher takeoff_pub = nh.advertise<std_msgs::Empty>("/ardrone/land", 1);
-    ros::Publisher land_pub = nh.advertise<std_msgs::Empty>("/ardrone/takeoff", 1);
+    ros::Publisher takeoff_pub = nh.advertise<std_msgs::Empty>("/ardrone/takeoff", 1);
+    ros::Publisher land_pub = nh.advertise<std_msgs::Empty>("/ardrone/land", 1);
     ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
-            ("/cmd_vel", 1);
+            ("/RANDOM", 1);
     geometry_msgs::Twist vel_msg;
     std_msgs::Empty empty_msg;
 #else
@@ -101,7 +101,6 @@ int main( int argc, char** argv )
     bool result;
     ros::Rate rate(frame_rate);
 
-    takeoff_pub.publish(empty_msg);
     //int nsecs = ros::Time::now().nsec;
     //int prev_time = nsecs;
     while (1)
@@ -123,10 +122,11 @@ int main( int argc, char** argv )
 
 #ifdef PUBLISH_MSG
 #ifdef ARDRONE
-        vel_msg.velocity = detector.process();
-        vel_msg.velocity.x *= speed;
-        vel_msg.velocity.y *= speed;
-        vel_msg.velocity.z *= speed;
+        takeoff_pub.publish(empty_msg);
+        vel_msg.linear = detector.process();
+        vel_msg.linear.x *= speed;
+        vel_msg.linear.y *= speed;
+        vel_msg.linear.z *= speed;
         vel_pub.publish(vel_msg);
 #else
         pos_msg.velocity = detector.process();
@@ -153,7 +153,14 @@ int main( int argc, char** argv )
 	//prev_time = nsecs;
 
     }
-    land_pub.publish(empty_msg);
+#ifdef PUBLISH_MSG
+    for (int i = 0; i < 100; i++)
+    {
+        land_pub.publish(empty_msg);
+        ros::spinOnce();
+        rate.sleep();
+    }
+#endif
 
     return 0;
 }
