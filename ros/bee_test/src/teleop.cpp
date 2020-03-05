@@ -1,10 +1,11 @@
 #include <ros/ros.h>
 #include <mavros_msgs/PositionTarget.h>
-#include <geometry_msg/Twist.h>
+#include <geometry_msgs/Twist.h>
+#include <std_msgs/Empty.h>
 #include "std_msgs/Char.h"
 
 // Init variables
-float speed(0.10); // Linear velocity (m/s)
+float speed(0.15); // Linear velocity (m/s)
 float turn(1.0); // Angular velocity (rad/s)
 float x(0), y(0), z(0), th(0); // Forward/backward/neutral direction vars
 std_msgs::Char key;
@@ -21,7 +22,9 @@ int main(int argc, char **argv)
     ros::Subscriber keyboard_state = nh.subscribe<std_msgs::Char>
             ("keyboard_publisher", 10, state_cb);
     ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
-            ("/ardrone/cmd_vel", 10);
+            ("/cmd_vel", 10);
+    ros::Publisher takeoff_pub = nh.advertise<std_msgs::Empty>("/ardrone/takeoff", 1);
+    ros::Publisher land_pub = nh.advertise<std_msgs::Empty>("/ardrone/land", 1);
     //ros::Publisher vel_pub = nh.advertise<mavros_msgs::PositionTarget>
             //("/ardrone/cmd_vel", 10);
 
@@ -38,6 +41,7 @@ int main(int argc, char **argv)
                         | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
 */
     geometry_msgs::Twist vel_msg;
+    std_msgs::Empty empty_msg;
 
     while(ros::ok()){
 
@@ -61,15 +65,20 @@ int main(int argc, char **argv)
             x = -1;
             y = 0;
             z = 0;
+        // Flipping l and j for ardrone
         } else if (key.data == 'l') {
-            x = 0;
-            y = 1;
-            z = 0;
-        } else if (key.data == 'j') {
             x = 0;
             y = -1;
             z = 0;
+        } else if (key.data == 'j') {
+            x = 0;
+            y = 1;
+            z = 0;
         } 
+        else if (key.data == 's')
+        {
+            break;
+        }
         // Otherwise, set the robot to stop
         else
         {
@@ -78,6 +87,7 @@ int main(int argc, char **argv)
             z = 0;
         }
 
+        takeoff_pub.publish(empty_msg);
         vel_msg.linear.x = x*speed;
         vel_msg.linear.y = y*speed;
         vel_msg.linear.z = z*speed;
@@ -88,6 +98,12 @@ int main(int argc, char **argv)
         vel_pub.publish(vel_msg);
 
         ros::spinOnce();
+        rate.sleep();
+    }
+    for (int i = 0; i < 100; i++)
+    {
+        ros::spinOnce();
+        land_pub.publish(empty_msg);
         rate.sleep();
     }
 
