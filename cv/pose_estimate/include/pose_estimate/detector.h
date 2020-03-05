@@ -1,6 +1,7 @@
 #include "opencv2/objdetect.hpp"
 #include "opencv2/videoio.hpp"
 #include <geometry_msgs/Vector3.h>
+#define GAZEBO
 
 namespace VideoModes
 {
@@ -26,7 +27,11 @@ public:
 
     bool load_cascade(cv::String);
 
+#ifdef GAZEBO
+    bool load_frame(cv::Mat frame);
+#else
     bool load_frame();
+#endif
 
     geometry_msgs::Vector3 process();
 
@@ -49,6 +54,8 @@ private:
 
     void display_detection(cv::Rect, bool);
 
+    int frame_width;
+    int frame_height;
     int frame_rate;
 
     // fuck camera matrices

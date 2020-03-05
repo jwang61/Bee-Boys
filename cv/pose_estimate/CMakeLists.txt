@@ -8,8 +8,11 @@ project(pose_estimate)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  geometry_msgs
+  mavros_msgs
+  sensor_msgs
   std_msgs
+  cv_bridge
+  image_transport
 )
 
 
@@ -86,7 +89,7 @@ find_package( OpenCV 3.4.9 REQUIRED )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES pose_estimate
-  CATKIN_DEPENDS roscpp geometry_msgs std_msgs
+  CATKIN_DEPENDS roscpp mavros_msgs std_msgs sensor_msgs cv_bridge image_transport
   DEPENDS OpenCV
 )
 

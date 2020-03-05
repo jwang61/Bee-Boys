@@ -1,13 +1,12 @@
-
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include <pose_estimate/detector.h>
 
 #define CENTER_X 320
-#define CENTER_Y 400
+#define CENTER_Y 240
 #define CENTER_THRESHOLD 20
-#define DETECT_SIZE 100
-#define DETECT_THRESHOLD 10
+#define DETECT_SIZE 200
+#define DETECT_THRESHOLD 20
 
 Detector::Detector(int camera_id, int fps, int video_mode) :
     loaded(false),
@@ -18,26 +17,27 @@ Detector::Detector(int camera_id, int fps, int video_mode) :
     save_raw       = video_mode & static_cast<int>(VideoModes::SAVE_RAW);
     save_detect    = video_mode & static_cast<int>(VideoModes::SAVE_DETECT);
 
+#ifndef GAZEBO
     cap.open(camera_id);
 
     if (!cap.isOpened())
     {
         throw;
     }
+    frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+    frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+#else
+    frame_width = 640;
+    frame_height = 480;
+#endif
 
     if (save_raw)
     {
-        int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-        int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-
         raw_video.open("raw.avi", cv::VideoWriter::fourcc('M','J','P','G'), fps, cv::Size(frame_width,frame_height));
     }
 
     if (save_detect)
     {
-        int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-        int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-
         detect_video.open("detect.avi", cv::VideoWriter::fourcc('M','J','P','G'), fps, cv::Size(frame_width,frame_height));
     }
 
@@ -51,7 +51,9 @@ Detector::Detector(int camera_id, int fps, int video_mode) :
 
 Detector::~Detector()
 {
+#ifndef GAZEBO
     cap.release();
+#endif
     if (save_raw)
         raw_video.release();
     if (save_detect)
@@ -65,13 +67,20 @@ bool Detector::load_cascade(cv::String cascade_file)
     return loaded;
 }
 
+#ifdef GAZEBO
+bool Detector::load_frame(cv::Mat frame)
+{
+    raw_frame = frame;
+#else
 bool Detector::load_frame()
 {
     cap >> raw_frame;
+#endif
+
     if(raw_frame.empty())
         return false;
     cv::cvtColor( raw_frame, detect_frame, cv::COLOR_BGR2GRAY );
-    cv::equalizeHist( detect_frame, detect_frame );
+    //cv::equalizeHist( detect_frame, detect_frame );
     //cv::flip(detect_frame, detect_frame, 0);
     //cv::undistort(raw_frame, trans_frame, camera_matrix, distortion);
     return true;
@@ -108,14 +117,14 @@ geometry_msgs::Vector3 Detector::process()
             vel.y = -1; // Move left
 
         if (center_y > CENTER_Y + CENTER_THRESHOLD)
-            vel.z = 1;  // Move down
+            vel.z = -1;  // Move down
         else if (center_y < CENTER_Y - CENTER_THRESHOLD)
-            vel.z = -1; // Move up
+            vel.z = 1; // Move up
 
         if (main_detection.width > DETECT_SIZE + DETECT_THRESHOLD)
-            vel.x = -1; // Move back
+            vel.x = 2; // Move back
         else if (main_detection.width < DETECT_SIZE - DETECT_THRESHOLD)
-            vel.x = 1;  // Move forward
+            vel.x = -2;  // Move forward
         std::cout << "Detected at: " << center_x << ", " << center_y
                   << " with size of " << main_detection.width << std::endl;
         std::cout << vel << std::endl;
@@ -151,8 +160,8 @@ void Detector::display_detection(cv::Rect detection, bool detected)
                     cv::Size(detection.width/2, detection.height/2),
                     0, 0, 360, cv::Scalar(255, 0, 255), 4 );
         // Show center lines
-        cv::line(detect_frame, cv::Point(0, CENTER_Y), cv::Point(640, CENTER_Y), cv::Scalar(0, 0, 255), 4);
-        cv::line(detect_frame, cv::Point(CENTER_X, 0), cv::Point(CENTER_X, 480), cv::Scalar(0, 0, 255), 4);
+        cv::line(detect_frame, cv::Point(0, CENTER_Y), cv::Point(frame_width, CENTER_Y), cv::Scalar(0, 0, 255), 4);
+        cv::line(detect_frame, cv::Point(CENTER_X, 0), cv::Point(CENTER_X, frame_height), cv::Scalar(0, 0, 255), 4);
     }
     else
     {

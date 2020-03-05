@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="demo" pkg="bee_test" type="actuate_arm" output="screen">
+    </node>
+	<include file="$(find pose_estimate)/launch/pose.launch"/>
+</launch>

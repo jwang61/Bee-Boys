@@ -1,20 +1,6 @@
-/**
- * @file offb_node.cpp
- * @brief Offboard control example node, written with MAVROS version 0.19.x, PX4 Pro Flight
- * Stack and tested in Gazebo SITL
- */
-
 #include <ros/ros.h>
-#include <mavros_msgs/CommandBool.h>
-#include <mavros_msgs/SetMode.h>
-#include <mavros_msgs/State.h>
 #include <mavros_msgs/PositionTarget.h>
-#include <mavros_msgs/AttitudeTarget.h>
-#include <unistd.h>
-#include <termios.h>
 #include "std_msgs/Char.h"
-
-#include <map>
 
 // Init variables
 float speed(0.25); // Linear velocity (m/s)

@@ -1,19 +1,11 @@
-/**
- * @file offb_node.cpp
- * @brief Offboard control example node, written with MAVROS version 0.19.x, PX4 Pro Flight
- * Stack and tested in Gazebo SITL
- */
-
 #include <ros/ros.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <mavros_msgs/CommandBool.h>
-#include <mavros_msgs/SetMode.h>
-#include <mavros_msgs/State.h>
 #include <mavros_msgs/ActuatorControl.h>
+#include <std_msgs/Float32.h>
 
-mavros_msgs::State current_state;
-void state_cb(const mavros_msgs::State::ConstPtr& msg){
-    current_state = *msg;
+std_msgs::Float32 servo_angle;
+
+void state_cb(const std_msgs::Float32::ConstPtr& msg){
+    servo_angle = *msg;
 }
 
 int main(int argc, char **argv)
@@ -21,29 +13,40 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "actuate_arm");
     ros::NodeHandle nh;
 
-    ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
-            ("mavros/state", 10, state_cb);
+    ros::Subscriber servo_angle_sub = nh.subscribe<std_msgs::Float32>
+            ("servo_angle_publisher", 10, state_cb);
     ros::Publisher actuator_pub = nh.advertise<mavros_msgs::ActuatorControl>
             ("mavros/actuator_control", 10);
 
     //the setpoint publishing rate MUST be faster than 2Hz
-    ros::Rate rate(0.333);
+    ros::Rate rate(1); 
 
-    mavros_msgs::ActuatorControl pos_msg;
-    pos_msg.group_mix = mavros_msgs::ActuatorControl::PX4_MIX_MANUAL_PASSTHROUGH;
+    float target = 0;
+    float last_position = 0;
+
+    mavros_msgs::ActuatorControl act_msg;
+    act_msg.group_mix = mavros_msgs::ActuatorControl::PX4_MIX_MANUAL_PASSTHROUGH;
 
     ros::Time last_time = ros::Time::now();
     int count = 0;
     while(ros::ok()){
-        // ros::Duration(1).sleep();
-        // dont disarm for real code! ! ! ! ! !!  
-        pos_msg.controls[5] = (pos_msg.controls[5] > -0.5) ? -1 : 0;
-        pos_msg.header.stamp = ros::Time::now();
-      
-        actuator_pub.publish(pos_msg);
+        target = servo_angle.data;
+        if (target != last_position){
+            if (target - last_position > 0.2){
+                target = last_position + 0.2;
+            }
+            else if (target - last_position < -0.2){
+                target = last_position - 0.2;
+            }
+        }
+        last_position = target;
+        act_msg.controls[5] = target;
+        act_msg.header.stamp = ros::Time::now();
+
+        actuator_pub.publish(act_msg);
+        
         ros::spinOnce();
         rate.sleep();
-        count++;
     }
 
     return 0;
