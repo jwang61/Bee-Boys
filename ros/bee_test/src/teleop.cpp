@@ -1,9 +1,10 @@
 #include <ros/ros.h>
 #include <mavros_msgs/PositionTarget.h>
+#include <geometry_msg/Twist.h>
 #include "std_msgs/Char.h"
 
 // Init variables
-float speed(0.25); // Linear velocity (m/s)
+float speed(0.10); // Linear velocity (m/s)
 float turn(1.0); // Angular velocity (rad/s)
 float x(0), y(0), z(0), th(0); // Forward/backward/neutral direction vars
 std_msgs::Char key;
@@ -19,12 +20,15 @@ int main(int argc, char **argv)
 
     ros::Subscriber keyboard_state = nh.subscribe<std_msgs::Char>
             ("keyboard_publisher", 10, state_cb);
-    ros::Publisher vel_pub = nh.advertise<mavros_msgs::PositionTarget>
-            ("mavros/setpoint_raw/local", 10);
+    ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
+            ("/ardrone/cmd_vel", 10);
+    //ros::Publisher vel_pub = nh.advertise<mavros_msgs::PositionTarget>
+            //("/ardrone/cmd_vel", 10);
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
 
+/*
     mavros_msgs::PositionTarget pos_msg;
     pos_msg.coordinate_frame = 1;
     pos_msg.type_mask = mavros_msgs::PositionTarget::IGNORE_PX
@@ -32,6 +36,8 @@ int main(int argc, char **argv)
                         | mavros_msgs::PositionTarget::IGNORE_PZ
                         | mavros_msgs::PositionTarget::IGNORE_YAW
                         | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
+*/
+    geometry_msgs::Twist vel_msg;
 
     while(ros::ok()){
 
@@ -72,11 +78,14 @@ int main(int argc, char **argv)
             z = 0;
         }
 
-        pos_msg.velocity.x = x * speed;
-        pos_msg.velocity.y = y * speed;
-        pos_msg.velocity.z = z * speed;
+        vel_msg.linear.x = x*speed;
+        vel_msg.linear.y = y*speed;
+        vel_msg.linear.z = z*speed;
+        //pos_msg.velocity.x = x * speed;
+        //pos_msg.velocity.y = y * speed;
+        //pos_msg.velocity.z = z * speed;
         
-        vel_pub.publish(pos_msg);
+        vel_pub.publish(vel_msg);
 
         ros::spinOnce();
         rate.sleep();

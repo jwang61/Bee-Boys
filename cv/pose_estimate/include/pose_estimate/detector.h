@@ -1,7 +1,7 @@
 #include "opencv2/objdetect.hpp"
 #include "opencv2/videoio.hpp"
 #include <geometry_msgs/Vector3.h>
-#define GAZEBO
+#define USE_CAM_TOPIC
 
 namespace VideoModes
 {
@@ -27,7 +27,7 @@ public:
 
     bool load_cascade(cv::String);
 
-#ifdef GAZEBO
+#ifdef USE_CAM_TOPIC
     bool load_frame(cv::Mat frame);
 #else
     bool load_frame();

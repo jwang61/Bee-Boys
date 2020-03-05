@@ -17,7 +17,7 @@ Detector::Detector(int camera_id, int fps, int video_mode) :
     save_raw       = video_mode & static_cast<int>(VideoModes::SAVE_RAW);
     save_detect    = video_mode & static_cast<int>(VideoModes::SAVE_DETECT);
 
-#ifndef GAZEBO
+#ifndef USE_CAM_TOPIC
     cap.open(camera_id);
 
     if (!cap.isOpened())
@@ -51,7 +51,7 @@ Detector::Detector(int camera_id, int fps, int video_mode) :
 
 Detector::~Detector()
 {
-#ifndef GAZEBO
+#ifndef USE_CAM_TOPIC
     cap.release();
 #endif
     if (save_raw)
@@ -67,7 +67,7 @@ bool Detector::load_cascade(cv::String cascade_file)
     return loaded;
 }
 
-#ifdef GAZEBO
+#ifdef USE_CAM_TOPIC
 bool Detector::load_frame(cv::Mat frame)
 {
     raw_frame = frame;
