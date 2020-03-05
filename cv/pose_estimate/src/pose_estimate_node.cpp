@@ -16,6 +16,8 @@
 #ifdef ARDRONE
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Char.h>
 #else
 #include <mavros_msgs/PositionTarget.h>
 #include <std_msgs/Float32.h>
@@ -45,6 +47,13 @@ void image_cb(const sensor_msgs::ImageConstPtr& msg)
 
 float speed(0.1);
 
+std_msgs::Char key;
+std_msgs::Bool teleop_active = true;
+
+void keyboard_cb(const std_msgs::Char::ConstPtr& msg){
+    key = *msg;
+}
+
 int main( int argc, char** argv )
 {
     std::string cascade;
@@ -62,6 +71,10 @@ int main( int argc, char** argv )
     ros::Publisher land_pub = nh.advertise<std_msgs::Empty>("/ardrone/land", 1);
     ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
             ("/RANDOM", 1);
+    ros::Subscriber keyboard_state = nh.subscribe<std_msgs::Char>
+            ("keyboard_publisher", 10, keyboard_cb);
+    // ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
+    //         ("/cmd_vel", 10);
     geometry_msgs::Twist vel_msg;
     std_msgs::Empty empty_msg;
 #else
@@ -122,11 +135,72 @@ int main( int argc, char** argv )
 
 #ifdef PUBLISH_MSG
 #ifdef ARDRONE
-        takeoff_pub.publish(empty_msg);
-        vel_msg.linear = detector.process();
-        vel_msg.linear.x *= speed;
-        vel_msg.linear.y *= speed;
-        vel_msg.linear.z *= speed;
+        if (teleop_active) {
+            if(key.data == 'o') {
+                x = 0;
+                y = 0;
+                z = 1;
+            } else if (key.data == 'k') {
+                z = 0;
+                x = 0;
+                y = 0;
+            } else if (key.data == 'u') {
+                x = 0;
+                y = 0;
+                z = -1;
+            } else if (key.data == 'i') {
+                x = 1;
+                y = 0;
+                z = 0;
+            } else if (key.data == ',') {
+                x = -1;
+                y = 0;
+                z = 0;
+            // Flipping l and j for ardrone
+            } else if (key.data == 'l') {
+                x = 0;
+                y = -1;
+                z = 0;
+            } else if (key.data == 'j') {
+                x = 0;
+                y = 1;
+                z = 0;
+            } 
+            else if (key.data == 's')
+            {
+                teleop_active = false;
+            }
+            else if (key.data == 'a')
+            {
+                break;
+            }
+            // Otherwise, set the robot to stop
+            else
+            {
+                x = 0;
+                y = 0;
+                z = 0;
+            }
+            takeoff_pub.publish(empty_msg);
+            vel_msg.linear.x = x*speed;
+            vel_msg.linear.y = y*speed;
+            vel_msg.linear.z = z*speed;
+        } else {
+            if (key.data == 'd') {
+                teleop_active = true;
+                vel_msg.linear.x = 0;
+                vel_msg.linear.y = 0;
+                vel_msg.linear.z = 0;
+            } else {
+                takeoff_pub.publish(empty_msg);
+                vel_msg.linear = detector.process();
+                vel_msg.linear.x *= speed;
+                vel_msg.linear.y *= speed;
+                vel_msg.linear.z *= speed;
+            }
+            
+        }
+        
         vel_pub.publish(vel_msg);
 #else
         pos_msg.velocity = detector.process();
