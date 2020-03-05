@@ -1,5 +1,5 @@
 #include <pose_estimate/detector.h>
-#ifdef GAZEBO
+#ifdef USE_CAM_TOPIC
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
@@ -11,8 +11,15 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/objdetect.hpp"
 #include "opencv2/videoio.hpp"
+
+#define ARDRONE
+#ifdef ARDRONE
+#include <geometry_msgs/Twist.h>
+#include <std_msgs/Empty.h>
+#else
 #include <mavros_msgs/PositionTarget.h>
 #include <std_msgs/Float32.h>
+#endif
 
 
 using namespace std;
@@ -20,7 +27,7 @@ using namespace cv;
 
 #define PUBLISH_MSG
 
-#ifdef GAZEBO
+#ifdef USE_CAM_TOPIC
 Mat frame;
 void image_cb(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -50,7 +57,15 @@ int main( int argc, char** argv )
     nh.param("camera_id", camera_id, 1);
 
 #ifdef PUBLISH_MSG
-     ros::Publisher vel_pub = nh.advertise<mavros_msgs::PositionTarget>
+#ifdef ARDRONE
+    ros::Publisher takeoff_pub = nh.advertise<std_msgs::Empty>("/ardrone/land", 1);
+    ros::Publisher land_pub = nh.advertise<std_msgs::Empty>("/ardrone/takeoff", 1);
+    ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
+            ("/cmd_vel", 1);
+    geometry_msgs::Twist vel_msg;
+    std_msgs::Empty empty_msg;
+#else
+    ros::Publisher vel_pub = nh.advertise<mavros_msgs::PositionTarget>
             ("/mavros/setpoint_raw/local", 10);
     ros::Publisher servo_angle_pub = nh.advertise<std_msgs::Float32>("/servo_angle_publisher", 10);
     std_msgs::Float32 servo_angle;
@@ -62,10 +77,15 @@ int main( int argc, char** argv )
                         | mavros_msgs::PositionTarget::IGNORE_YAW
                         | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
 #endif
+#endif
 
-#ifdef GAZEBO
+#ifdef USE_CAM_TOPIC
     image_transport::ImageTransport it(nh);
+#ifdef ARDRONE
+    image_transport::Subscriber image_sub = it.subscribe("/ardrone/front/image_raw", 1, image_cb);
+#else
     image_transport::Subscriber image_sub = it.subscribe("/iris/usb_cam/image_raw", 1, image_cb);
+#endif
 #endif
 
     ROS_INFO("CREATING DETECTOR...");
@@ -80,13 +100,14 @@ int main( int argc, char** argv )
     int key;
     bool result;
     ros::Rate rate(frame_rate);
-    
+
+    takeoff_pub.publish(empty_msg);
     //int nsecs = ros::Time::now().nsec;
     //int prev_time = nsecs;
     while (1)
     {
         ros::spinOnce();
-#ifdef GAZEBO
+#ifdef USE_CAM_TOPIC
         if (frame.empty())
         {
             ROS_INFO("NO IMAGE");
@@ -101,16 +122,24 @@ int main( int argc, char** argv )
             break;
 
 #ifdef PUBLISH_MSG
+#ifdef ARDRONE
+        vel_msg.velocity = detector.process();
+        vel_msg.velocity.x *= speed;
+        vel_msg.velocity.y *= speed;
+        vel_msg.velocity.z *= speed;
+        vel_pub.publish(vel_msg);
+#else
         pos_msg.velocity = detector.process();
-	    pos_msg.velocity.x *= speed;
-	    pos_msg.velocity.y *= speed;
-	    pos_msg.velocity.z *= speed;
+        pos_msg.velocity.x *= speed;
+        pos_msg.velocity.y *= speed;
+        pos_msg.velocity.z *= speed;
         vel_pub.publish(pos_msg);
         if (detector.position_locked)
             servo_angle.data = -0.5;
         else
             servo_angle.data = -1.0;
         servo_angle_pub.publish(servo_angle);
+#endif
 #else
         detector.process();
 #endif
@@ -121,9 +150,10 @@ int main( int argc, char** argv )
         rate.sleep();
         //nsecs = ros::Time::now().nsec;
         //cout << "TIME: " << prev_time - nsecs << endl;
-        //prev_time = nsecs;
+	//prev_time = nsecs;
 
     }
+    land_pub.publish(empty_msg);
 
     return 0;
 }
