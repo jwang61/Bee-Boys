@@ -19,7 +19,7 @@ int main(int argc, char **argv)
             ("mavros/actuator_control", 10);
 
     //the setpoint publishing rate MUST be faster than 2Hz
-    ros::Rate rate(1); 
+    ros::Rate rate(10); 
 
     float target = 0;
     float last_position = 0;
@@ -32,11 +32,11 @@ int main(int argc, char **argv)
     while(ros::ok()){
         target = servo_angle.data;
         if (target != last_position){
-            if (target - last_position > 0.2){
-                target = last_position + 0.2;
+            if (target - last_position > 0.1){
+                target = last_position + 0.1;
             }
-            else if (target - last_position < -0.2){
-                target = last_position - 0.2;
+            else if (target - last_position < -0.1){
+                target = last_position - 0.1;
             }
         }
         last_position = target;

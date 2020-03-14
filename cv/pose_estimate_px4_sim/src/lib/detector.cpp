@@ -2,11 +2,12 @@
 #include "opencv2/imgproc.hpp"
 #include <pose_estimate/detector.h>
 
+// For PX4
 #define CENTER_X 320
-#define CENTER_Y 180
-#define CENTER_THRESHOLD 30
-#define DETECT_SIZE 100
-#define DETECT_THRESHOLD 20
+#define CENTER_Y 240
+#define CENTER_THRESHOLD 50
+#define DETECT_SIZE 275
+#define DETECT_THRESHOLD 50
 
 Detector::Detector(int camera_id, int fps, int video_mode) :
     loaded(false),
@@ -18,7 +19,7 @@ Detector::Detector(int camera_id, int fps, int video_mode) :
     save_detect    = video_mode & static_cast<int>(VideoModes::SAVE_DETECT);
 
     frame_width = 640;
-    frame_height = 360;
+    frame_height = 480;
 
     if (save_raw)
     {
@@ -40,6 +41,7 @@ Detector::Detector(int camera_id, int fps, int video_mode) :
 
 Detector::~Detector()
 {
+    cap.release();
     if (save_raw)
         raw_video.release();
     if (save_detect)
@@ -92,32 +94,28 @@ geometry_msgs::Vector3 Detector::process()
         int center_y = main_detection.y + main_detection.height/2;
 
         if (center_x > CENTER_X + CENTER_THRESHOLD)
-            vel.y = -1.0*(center_x - CENTER_X)/float(CENTER_X);  // Move right
+            vel.y = 1;  // Move right
         else if (center_x < CENTER_X - CENTER_THRESHOLD)
-            vel.y = 1.0*(CENTER_X - center_x)/float(CENTER_X); // Move left
+            vel.y = -1; // Move left
 
         if (center_y > CENTER_Y + CENTER_THRESHOLD)
-            vel.z = -1.0*(center_y - CENTER_Y)/float(CENTER_Y);  // Move down
+            vel.z = -1;  // Move down
         else if (center_y < CENTER_Y - CENTER_THRESHOLD)
-            vel.z = 1.0*(CENTER_Y - center_y)/float(CENTER_Y); // Move up
+            vel.z = 1; // Move up
 
         if (main_detection.width > DETECT_SIZE + DETECT_THRESHOLD)
-            vel.x = -0.7*(main_detection.width - DETECT_SIZE)/float(DETECT_SIZE); // Move back
+            vel.x = 2; // Move back
         else if (main_detection.width < DETECT_SIZE - DETECT_THRESHOLD)
-            vel.x = 0.7*(DETECT_SIZE - main_detection.width)/float(DETECT_SIZE);  // Move forward
+            vel.x = -2;  // Move forward
         std::cout << "Detected at: " << center_x << ", " << center_y
                   << " with size of " << main_detection.width << std::endl;
         std::cout << vel << std::endl;
         if (vel.x == 0 && vel.y == 0 && vel.z == 0)
             position_locked = true;
-        else
-            last_vel = vel;
     }
     else
     {
-        vel = last_vel;
         std::cout << "NO DETECTIONS " << std::endl;
-        std::cout << vel << std::endl;
     }
 
     if (display_raw)

@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-project(pose_estimate_ardrone)
+project(pose_estimate_px4_sim)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  #mavros_msgs
+  mavros_msgs
   sensor_msgs
   std_msgs
   cv_bridge
@@ -89,7 +89,7 @@ find_package( OpenCV 3.4.9 REQUIRED )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES pose_estimate
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs cv_bridge image_transport #mavros_msgs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs cv_bridge image_transport mavros_msgs
   DEPENDS OpenCV
 )
 
@@ -106,7 +106,7 @@ include_directories(
 )
 
 ## Declare a cpp library
- add_library(detector_ardrone
+ add_library(detector_px4_sim
    src/lib/detector.cpp
  )
 
@@ -115,11 +115,11 @@ include_directories(
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-#add_dependencies(pose_estimate_node pose_estimate_ardrone)
+#add_dependencies(pose_estimate_node pose_estimate_px4_sim)
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(pose_estimate_node
-   detector_ardrone
+   detector_px4_sim
    ${catkin_LIBRARIES}
    ${OpenCV_LIBS}
  )

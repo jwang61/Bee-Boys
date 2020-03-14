@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="pose_estimate_px4" pkg="pose_estimate_px4" type="pose_estimate_node" output="screen">
+        <param name="cascade" value="/home/beeboys/fydp/Bee-Boys/cv/data/cascade12.xml" type="str" />
+        <param name="video_mode" value="14" type="int" />
+        <param name="camera_id" value="1" type="int" />
+        <param name="frame_rate" value="15" type="int" />
+    </node>
+</launch>

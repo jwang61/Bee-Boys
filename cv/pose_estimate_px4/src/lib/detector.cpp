@@ -2,23 +2,31 @@
 #include "opencv2/imgproc.hpp"
 #include <pose_estimate/detector.h>
 
+// For PX4
 #define CENTER_X 320
-#define CENTER_Y 180
-#define CENTER_THRESHOLD 30
-#define DETECT_SIZE 100
-#define DETECT_THRESHOLD 20
+#define CENTER_Y 280
+#define CENTER_THRESHOLD 80
+#define DETECT_SIZE 240
+#define DETECT_THRESHOLD 60
 
 Detector::Detector(int camera_id, int fps, int video_mode) :
     loaded(false),
-    position_locked(false)
+    position_locked(false),
+    locked(false)
 {
     display_raw    = video_mode & static_cast<int>(VideoModes::DISPLAY_RAW);
     display_detect = video_mode & static_cast<int>(VideoModes::DISPLAY_DETECT);
     save_raw       = video_mode & static_cast<int>(VideoModes::SAVE_RAW);
     save_detect    = video_mode & static_cast<int>(VideoModes::SAVE_DETECT);
 
-    frame_width = 640;
-    frame_height = 360;
+    cap.open(camera_id);
+
+    if (!cap.isOpened())
+    {
+        throw;
+    }
+    frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+    frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 
     if (save_raw)
     {
@@ -40,6 +48,7 @@ Detector::Detector(int camera_id, int fps, int video_mode) :
 
 Detector::~Detector()
 {
+    cap.release();
     if (save_raw)
         raw_video.release();
     if (save_detect)
@@ -53,9 +62,10 @@ bool Detector::load_cascade(cv::String cascade_file)
     return loaded;
 }
 
-bool Detector::load_frame(cv::Mat frame)
+
+bool Detector::load_frame()
 {
-    raw_frame = frame;
+    cap >> raw_frame;
 
     if(raw_frame.empty())
         return false;
@@ -92,32 +102,28 @@ geometry_msgs::Vector3 Detector::process()
         int center_y = main_detection.y + main_detection.height/2;
 
         if (center_x > CENTER_X + CENTER_THRESHOLD)
-            vel.y = -1.0*(center_x - CENTER_X)/float(CENTER_X);  // Move right
+            vel.y = -1;  // Move right
         else if (center_x < CENTER_X - CENTER_THRESHOLD)
-            vel.y = 1.0*(CENTER_X - center_x)/float(CENTER_X); // Move left
+            vel.y = 1; // Move left
 
         if (center_y > CENTER_Y + CENTER_THRESHOLD)
-            vel.z = -1.0*(center_y - CENTER_Y)/float(CENTER_Y);  // Move down
+            vel.z = -1;  // Move down
         else if (center_y < CENTER_Y - CENTER_THRESHOLD)
-            vel.z = 1.0*(CENTER_Y - center_y)/float(CENTER_Y); // Move up
+            vel.z = 1; // Move up
 
         if (main_detection.width > DETECT_SIZE + DETECT_THRESHOLD)
-            vel.x = -0.7*(main_detection.width - DETECT_SIZE)/float(DETECT_SIZE); // Move back
+            vel.x = -1; // Move back
         else if (main_detection.width < DETECT_SIZE - DETECT_THRESHOLD)
-            vel.x = 0.7*(DETECT_SIZE - main_detection.width)/float(DETECT_SIZE);  // Move forward
+            vel.x = 1;  // Move forward
         std::cout << "Detected at: " << center_x << ", " << center_y
                   << " with size of " << main_detection.width << std::endl;
         std::cout << vel << std::endl;
         if (vel.x == 0 && vel.y == 0 && vel.z == 0)
             position_locked = true;
-        else
-            last_vel = vel;
     }
     else
     {
-        vel = last_vel;
         std::cout << "NO DETECTIONS " << std::endl;
-        std::cout << vel << std::endl;
     }
 
     if (display_raw)
@@ -136,21 +142,29 @@ geometry_msgs::Vector3 Detector::process()
 void Detector::display_detection(cv::Rect detection, bool detected)
 {
     cv::cvtColor(detect_frame, detect_frame, CV_GRAY2RGB);
-    if (detected)
+    // Show center lines
+    cv::line(detect_frame, cv::Point(0, CENTER_Y), cv::Point(frame_width, CENTER_Y), cv::Scalar(200, 200, 0), 2);
+    cv::line(detect_frame, cv::Point(CENTER_X, 0), cv::Point(CENTER_X, frame_height), cv::Scalar(200, 200, 0), 2);
+    if (locked)
     {
-        cv::Point center(detection.x + detection.width/2,
-                         detection.y + detection.height/2);
-        cv::ellipse(detect_frame, center,
-                    cv::Size(detection.width/2, detection.height/2),
-                    0, 0, 360, cv::Scalar(255, 0, 255), 4 );
-        // Show center lines
-        cv::line(detect_frame, cv::Point(0, CENTER_Y), cv::Point(frame_width, CENTER_Y), cv::Scalar(0, 0, 255), 4);
-        cv::line(detect_frame, cv::Point(CENTER_X, 0), cv::Point(CENTER_X, frame_height), cv::Scalar(0, 0, 255), 4);
+        cv::putText(detect_frame, "Pollinating...", cv::Point(100, 100), cv::FONT_HERSHEY_SIMPLEX, 1,
+                     cv::Scalar(0, 0, 255), 4);
     }
     else
     {
-        cv::putText(detect_frame, "No Flowers Found", cv::Point(100, 100), cv::FONT_HERSHEY_SIMPLEX, 1,
-                    cv::Scalar(0, 0, 255), 4);
+        if (detected)
+        {
+            cv::Point center(detection.x + detection.width/2,
+                            detection.y + detection.height/2);
+            cv::ellipse(detect_frame, center,
+                        cv::Size(detection.width/2, detection.height/2),
+                        0, 0, 360, cv::Scalar(255, 0, 255), 4 );
+        }
+        else
+        {
+        // cv::putText(detect_frame, "No Flowers Found", cv::Point(100, 100), cv::FONT_HERSHEY_SIMPLEX, 1,
+        //             cv::Scalar(0, 0, 255), 4);
+        }
     }
     cv::imshow("detection frame", detect_frame);
 }

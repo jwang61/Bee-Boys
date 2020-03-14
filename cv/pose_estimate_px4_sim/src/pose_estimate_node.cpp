@@ -10,10 +10,10 @@
 #include "opencv2/objdetect.hpp"
 #include "opencv2/videoio.hpp"
 #include <std_msgs/Char.h>
-#include <std_msgs/Empty.h>
 
-#include <geometry_msgs/Twist.h>
-#include <std_msgs/Bool.h>
+#include <mavros_msgs/PositionTarget.h>
+#include <std_msgs/Float32.h>
+
 
 using namespace std;
 using namespace cv;
@@ -34,10 +34,10 @@ void image_cb(const sensor_msgs::ImageConstPtr& msg)
     }
 }
 
-float speed(0.05);
+float speed(0.1);
 
 std_msgs::Char key;
-bool teleop_active = true;
+bool teleop_active = false;
 
 void keyboard_cb(const std_msgs::Char::ConstPtr& msg){
     key = *msg;
@@ -54,19 +54,23 @@ int main( int argc, char** argv )
     nh.param("frame_rate", frame_rate, 30);
 
 #ifdef PUBLISH_MSG
-    ros::Publisher takeoff_pub = nh.advertise<std_msgs::Empty>("/ardrone/takeoff", 1);
-    ros::Publisher land_pub = nh.advertise<std_msgs::Empty>("/ardrone/land", 1);
-    std_msgs::Empty empty_msg;
-
     ros::Subscriber keyboard_state = nh.subscribe<std_msgs::Char>
             ("/keyboard_publisher", 10, keyboard_cb);
-    ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
-            ("/cmd_vel", 10);
-    geometry_msgs::Twist vel_msg;
+    ros::Publisher vel_pub = nh.advertise<mavros_msgs::PositionTarget>
+            ("/mavros/setpoint_raw/local", 10);
+    ros::Publisher servo_angle_pub = nh.advertise<std_msgs::Float32>("/servo_angle_publisher", 10);
+    std_msgs::Float32 servo_angle;
+    mavros_msgs::PositionTarget pos_msg;
+    pos_msg.coordinate_frame = 1;
+    pos_msg.type_mask = mavros_msgs::PositionTarget::IGNORE_PX
+                        | mavros_msgs::PositionTarget::IGNORE_PY
+                        | mavros_msgs::PositionTarget::IGNORE_PZ
+                        | mavros_msgs::PositionTarget::IGNORE_YAW
+                        | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
 #endif
 
     image_transport::ImageTransport it(nh);
-    image_transport::Subscriber image_sub = it.subscribe("/ardrone/front/image_raw", 1, image_cb);
+    image_transport::Subscriber image_sub = it.subscribe("/iris/usb_cam/image_raw", 1, image_cb);
 
     ROS_INFO("CREATING DETECTOR...");
     Detector detector(0, frame_rate, video_mode);
@@ -145,30 +149,33 @@ int main( int argc, char** argv )
                 z = 0;
             }
             ROS_INFO_STREAM("KEY " << key.data);
-            takeoff_pub.publish(empty_msg);
-            vel_msg.linear.x = x*speed;
-            vel_msg.linear.y = y*speed;
-            vel_msg.linear.z = z*speed;
             detector.process();
+            pos_msg.velocity.x = x* speed;
+            pos_msg.velocity.y = y*speed;
+            pos_msg.velocity.z = z*speed;
         } else {
             if (key.data == 'd') {
                 teleop_active = true;
-                vel_msg.linear.x = 0;
-                vel_msg.linear.y = 0;
-                vel_msg.linear.z = 0;
+                pos_msg.velocity.x = 0;
+                pos_msg.velocity.y = 0;
+                pos_msg.velocity.z = 0;
             } else if (key.data == 'a') {
                 break;
             } else {
-                takeoff_pub.publish(empty_msg);
-                vel_msg.linear = detector.process();
-                vel_msg.linear.x *= speed;
-                vel_msg.linear.y *= speed;
-                vel_msg.linear.z *= speed;
+                pos_msg.velocity = detector.process();
+                pos_msg.velocity.x *= speed;
+                pos_msg.velocity.y *= speed;
+                pos_msg.velocity.z *= speed;
             }
             
         }
         
-        vel_pub.publish(vel_msg);
+        vel_pub.publish(pos_msg);
+        if (detector.position_locked)
+            servo_angle.data = -0.5;
+        else
+            servo_angle.data = -1.0;
+        servo_angle_pub.publish(servo_angle);
 #else
         detector.process();
 #endif
@@ -182,14 +189,6 @@ int main( int argc, char** argv )
 	//prev_time = nsecs;
 
     }
-#ifdef PUBLISH_MSG
-    for (int i = 0; i < 50; i++)
-    {
-        land_pub.publish(empty_msg);
-        ros::spinOnce();
-        rate.sleep();
-    }
-#endif
 
     return 0;
 }

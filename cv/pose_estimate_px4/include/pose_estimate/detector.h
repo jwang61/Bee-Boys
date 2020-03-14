@@ -18,6 +18,7 @@ typedef VideoModes::VideoMode VideoMode;
 class Detector {
 public:
     bool position_locked;
+    bool locked;
     // Constructor
     Detector(int camera_id, int fps, int video_mode = 2);
 
@@ -26,7 +27,7 @@ public:
 
     bool load_cascade(cv::String);
 
-    bool load_frame(cv::Mat frame);
+    bool load_frame();
 
     geometry_msgs::Vector3 process();
 
@@ -52,8 +53,6 @@ private:
     int frame_width;
     int frame_height;
     int frame_rate;
-
-    geometry_msgs::Vector3 last_vel;
 
     // fuck camera matrices
     //cv::Mat camera_matrix;
