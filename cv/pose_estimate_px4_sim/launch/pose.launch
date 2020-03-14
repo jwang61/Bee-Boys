@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="pose_estimate_ardrone" pkg="pose_estimate_ardrone" type="pose_estimate_node" output="screen">
+    <node name="pose_estimate_px4_sim" pkg="pose_estimate_px4_sim" type="pose_estimate_node" output="screen">
         <param name="cascade" value="/home/beeboys/fydp/Bee-Boys/cv/data/cascade12.xml" type="str" />
         <param name="video_mode" value="2" type="int" />
-        <param name="frame_rate" value="20" type="int" />
+        <param name="frame_rate" value="10" type="int" />
     </node>
 </launch>

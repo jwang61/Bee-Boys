@@ -53,8 +53,6 @@ private:
     int frame_height;
     int frame_rate;
 
-    geometry_msgs::Vector3 last_vel;
-
     // fuck camera matrices
     //cv::Mat camera_matrix;
     //cv::Mat distortion;

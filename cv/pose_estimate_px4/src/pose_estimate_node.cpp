@@ -1,7 +1,4 @@
 #include <pose_estimate/detector.h>
-#include <image_transport/image_transport.h>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/Image.h>
 
 #include <iostream>
 #include <ros/ros.h>
@@ -10,31 +7,16 @@
 #include "opencv2/objdetect.hpp"
 #include "opencv2/videoio.hpp"
 #include <std_msgs/Char.h>
-#include <std_msgs/Empty.h>
 
-#include <geometry_msgs/Twist.h>
-#include <std_msgs/Bool.h>
+#include <mavros_msgs/PositionTarget.h>
+#include <std_msgs/Float32.h>
 
 using namespace std;
 using namespace cv;
 
 #define PUBLISH_MSG
 
-Mat frame;
-void image_cb(const sensor_msgs::ImageConstPtr& msg)
-{
-    try
-    {
-        frame = cv_bridge::toCvShare(msg, "bgr8")->image;
-    }
-    catch (cv_bridge::Exception& e)
-    {
-        ROS_ERROR("cv_bridge exception: %s", e.what());
-        return;
-    }
-}
-
-float speed(0.05);
+float speed(0.3);
 
 std_msgs::Char key;
 bool teleop_active = true;
@@ -46,30 +28,32 @@ void keyboard_cb(const std_msgs::Char::ConstPtr& msg){
 int main( int argc, char** argv )
 {
     std::string cascade;
-    int video_mode, frame_rate;
+    int video_mode, camera_id, frame_rate;
     ros::init(argc, argv, "pose_estimate_node");
     ros::NodeHandle nh("~");
     nh.getParam("cascade", cascade);
     nh.param("video_mode", video_mode, 2);
     nh.param("frame_rate", frame_rate, 30);
+    nh.param("camera_id", camera_id, 1);
 
 #ifdef PUBLISH_MSG
-    ros::Publisher takeoff_pub = nh.advertise<std_msgs::Empty>("/ardrone/takeoff", 1);
-    ros::Publisher land_pub = nh.advertise<std_msgs::Empty>("/ardrone/land", 1);
-    std_msgs::Empty empty_msg;
-
     ros::Subscriber keyboard_state = nh.subscribe<std_msgs::Char>
             ("/keyboard_publisher", 10, keyboard_cb);
-    ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>
-            ("/cmd_vel", 10);
-    geometry_msgs::Twist vel_msg;
+    ros::Publisher vel_pub = nh.advertise<mavros_msgs::PositionTarget>
+            ("/mavros/setpoint_raw/local", 10);
+    ros::Publisher servo_angle_pub = nh.advertise<std_msgs::Float32>("/servo_angle_publisher", 10);
+    std_msgs::Float32 servo_angle;
+    mavros_msgs::PositionTarget pos_msg;
+    pos_msg.coordinate_frame = 1;
+    pos_msg.type_mask = mavros_msgs::PositionTarget::IGNORE_PX
+                        | mavros_msgs::PositionTarget::IGNORE_PY
+                        | mavros_msgs::PositionTarget::IGNORE_PZ
+                        | mavros_msgs::PositionTarget::IGNORE_YAW
+                        | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
 #endif
 
-    image_transport::ImageTransport it(nh);
-    image_transport::Subscriber image_sub = it.subscribe("/ardrone/front/image_raw", 1, image_cb);
-
     ROS_INFO("CREATING DETECTOR...");
-    Detector detector(0, frame_rate, video_mode);
+    Detector detector(camera_id, frame_rate, video_mode);
 
     ROS_INFO("LOADING CASCADE...");
     if (!detector.load_cascade(cascade))
@@ -79,6 +63,7 @@ int main( int argc, char** argv )
 
     int im_key;
     bool result;
+    ros::Time watchdog;
     float x(0), y(0), z(0), th(0); // Forward/backward/neutral direction vars
     ros::Rate rate(frame_rate);
 
@@ -87,13 +72,7 @@ int main( int argc, char** argv )
     while (1)
     {
         ros::spinOnce();
-        if (frame.empty())
-        {
-            ROS_INFO("NO IMAGE");
-            rate.sleep();
-            continue;
-        }
-        result = detector.load_frame(frame);
+        result = detector.load_frame();
         if (!result)
             break;
 
@@ -111,20 +90,20 @@ int main( int argc, char** argv )
                 x = 0;
                 y = 0;
                 z = -1;
-            } else if (key.data == 'i') {
+            } else if (key.data == 'j') {
                 x = 1;
                 y = 0;
                 z = 0;
-            } else if (key.data == ',') {
+            } else if (key.data == 'l') {
                 x = -1;
                 y = 0;
                 z = 0;
             // Flipping l and j for ardrone
-            } else if (key.data == 'l') {
+            } else if (key.data == 'i') {
                 x = 0;
                 y = -1;
                 z = 0;
-            } else if (key.data == 'j') {
+            } else if (key.data == ',') {
                 x = 0;
                 y = 1;
                 z = 0;
@@ -145,30 +124,43 @@ int main( int argc, char** argv )
                 z = 0;
             }
             ROS_INFO_STREAM("KEY " << key.data);
-            takeoff_pub.publish(empty_msg);
-            vel_msg.linear.x = x*speed;
-            vel_msg.linear.y = y*speed;
-            vel_msg.linear.z = z*speed;
             detector.process();
+            pos_msg.velocity.x = x* speed;
+            pos_msg.velocity.y = y*speed;
+            pos_msg.velocity.z = z*speed;
         } else {
             if (key.data == 'd') {
                 teleop_active = true;
-                vel_msg.linear.x = 0;
-                vel_msg.linear.y = 0;
-                vel_msg.linear.z = 0;
+                pos_msg.velocity.x = 0;
+                pos_msg.velocity.y = 0;
+                pos_msg.velocity.z = 0;
             } else if (key.data == 'a') {
                 break;
             } else {
-                takeoff_pub.publish(empty_msg);
-                vel_msg.linear = detector.process();
-                vel_msg.linear.x *= speed;
-                vel_msg.linear.y *= speed;
-                vel_msg.linear.z *= speed;
+                pos_msg.velocity = detector.process();
+                pos_msg.velocity.x *= speed;
+                pos_msg.velocity.y *= speed;
+                pos_msg.velocity.z *= speed;
             }
             
         }
         
-        vel_pub.publish(vel_msg);
+        vel_pub.publish(pos_msg);
+        if (detector.locked)
+        {
+            if (ros::Time::now() - watchdog > ros::Duration(3.0))
+                detector.locked = false;
+        }
+        else
+        {
+            if (detector.position_locked)
+            {
+                detector.locked = true;
+                watchdog = ros::Time::now();
+            }
+        }
+        servo_angle.data = (detector.locked) ? 0.3 : 1.0;
+        servo_angle_pub.publish(servo_angle);
 #else
         detector.process();
 #endif
@@ -182,14 +174,6 @@ int main( int argc, char** argv )
 	//prev_time = nsecs;
 
     }
-#ifdef PUBLISH_MSG
-    for (int i = 0; i < 50; i++)
-    {
-        land_pub.publish(empty_msg);
-        ros::spinOnce();
-        rate.sleep();
-    }
-#endif
 
     return 0;
 }

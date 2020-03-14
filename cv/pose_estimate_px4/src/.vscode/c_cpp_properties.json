@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/beeboys/catkin_ws/devel/include/**",
+                "/opt/ros/kinetic/include/**",
+                "/home/beeboys/catkin_ws/src/mavros/libmavconn/include/**",
+                "/home/beeboys/catkin_ws/src/mavros/mavros/include/**",
+                "/home/beeboys/catkin_ws/src/mavros/mavros_msgs/include/**",
+                "/home/beeboys/catkin_ws/src/pose_estimate_ardrone/include/**",
+                "/home/beeboys/catkin_ws/src/pose_estimate_px4/include/**",
+                "/home/beeboys/catkin_ws/src/pose_estimate_px4_sim/include/**",
+                "/home/beeboys/catkin_ws/src/mavros/test_mavros/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
